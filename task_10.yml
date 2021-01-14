@@ -1,0 +1,51 @@
+- hosts: localhost 
+  tasks:
+        - file:
+            state: directory
+            path: "/dvd"
+        - mount:
+            src: "/dev/cdrom"
+            path: "/dvd"
+            state: mounted
+            fstype: "iso9660"
+        - name: Creating yum repository for docker 
+          yum_repository:
+            baseurl: "https://download.docker.com/linux/centos/7/x86_64/stable"
+            name: "docker"
+            description: "my docker dvd"
+            gpgcheck: no
+        - name: Running command for installing docker-ce
+          shell: yum install docker-ce --nobest -y
+        - name: Starting docker service
+          service: 
+            name: docker
+            state: started
+            enabled: yes
+        - package:
+            name: python3
+            state: present
+        - pip:
+            name: docker
+        - name: pulling httpd image from docker.
+          docker_image: 
+            name: httpd
+            source: pull
+        - name: creating directory for docker.
+          file:
+            state: directory
+            path: "/root/docker"
+        - name: Putting html content
+          copy:
+            dest: /root/docker/docker.html
+            content: "Ansible task1."
+        - docker_container:
+            name: "Apache"
+            image: httpd
+            volumes: /root/docker:/usr/local/apache2/htdocs/
+            state: started
+            exposed: 80
+            ports: "8090:80"
+        - name: stopping firewall
+          service:
+            name: firewalld
+            state: stopped
